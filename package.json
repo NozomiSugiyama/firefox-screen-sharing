@@ -4,8 +4,8 @@
     "main": "index.js",
     "license": "MIT",
     "scripts": {
-        "build": "webpack -p && cp -Rf ./assets/* ./dist",
-        "dev": "webpack -d && cp -Rf ./assets/* ./dist",
+        "build": "rm -Rf ./dist/* && NODE_ENV=production webpack -p && cleancss -o ./dist/style.css ./assets/*.css && htmlmin -o ./dist/index.html ./assets/*.html",
+        "dev": "rm -Rf ./dist/* && NODE_ENV=development webpack -d && cp -Rf ./assets/* ./dist/",
         "lint": "tslint './src/**/*.ts'"
     },
     "dependencies": {
@@ -13,6 +13,8 @@
     },
     "devDependencies": {
         "@types/socket.io-client": "^1.4.32",
+        "clean-css-cli": "^4.1.11",
+        "html-minifier-cli": "^0.1.0",
         "ts-loader": "^4.4.2",
         "tslint": "^5.11.0",
         "tslint-config-airbnb": "^5.9.2",

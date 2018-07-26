@@ -15,7 +15,10 @@ module.exports = {
     rules: [
         {
            test: /\.ts$/,
-           use: 'ts-loader'
+           loader: 'ts-loader',
+           options: {
+               configFile: require.resolve(`./tsconfig${process.env.NODE_ENV === 'production' ? '.prod' : ''}.json`)
+           },
         }
       ]
   },

@@ -23,14 +23,16 @@ export default class {
     private connections: ConnectionList;
     private socket: any;
     private socketReady: boolean;
+    private onCall: (id: string) => boolean;
 
-    constructor(localStream: MediaStream, videoElements: HTMLVideoElement[]) {
+    constructor(localStream: MediaStream, videoElements: HTMLVideoElement[], onCall: (id: string) => boolean) {
         this.socket = io.connect(`${window.location.origin}/`);
 
         this.socketReady = false;
         this.connections = new ConnectionList();
         this.videoElementManager = new videoElementManager(videoElements);
         this.localStream = localStream;
+        this.onCall = onCall;
 
         this.socket.on("connect", this.onOpened)
             .on("message", this.onMessage);
@@ -63,7 +65,8 @@ export default class {
                 return;
             }
             if (this.connections.isConnectPossible()) {
-                this.socket.json.send({ type: "response", sendTo: event.from });
+                if (this.onCall(event.from))
+                    this.socket.json.send({ type: "response", sendTo: event.from });
             } else {
                 console.warn("max connections. so ignore call");
             }

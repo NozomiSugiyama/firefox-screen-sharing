@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "allowJs": false,
+        "target": "es2017",
+        "module": "commonjs"
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "**/*.spec.ts"
+    ]
+}

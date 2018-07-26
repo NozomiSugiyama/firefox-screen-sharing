@@ -1,7 +1,6 @@
 const port = 8080;
 const fs = require("fs");
 const io = require("socket.io").listen(port);
-console.log((new Date()) + " Server is listening on port " + port);
 
 io.sockets.on("connection", socket => {
     socket.on("enter", roomname => {
