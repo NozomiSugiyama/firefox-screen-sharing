@@ -49,7 +49,7 @@ export default class {
         console.log(`enter to ${roomname}`);
     }
 
-    private onMessage = (event: ISocketEvent) => {
+    private onMessage = async (event: ISocketEvent) => {
         const conn = this.connections.getConnection(event.from);
         console.log("catch message");
         console.log(event.type, event);
@@ -67,20 +67,15 @@ export default class {
             }
 
             if (c.peerconnection) {
-                c.peerconnection.createOffer(mediaConstraints)
-                    .then((sessionDescription) => {
-                        if (!sessionDescription.sdp) {
-                            console.log("Create Offer failed");
-                            return;
-                        }
-                        sessionDescription.sdp = setBandwidth(sessionDescription.sdp);
-                        c.iceReady = true;
-                        c.peerconnection.setLocalDescription(sessionDescription);
-                        this.sendSDP(sessionDescription, event.from);
-                    })
-                    .catch(() => {
-                        console.log("Create Offer failed");
-                    });
+                const sessionDescription = await c.peerconnection.createOffer(mediaConstraints);
+                if (!sessionDescription.sdp) {
+                    console.log("Create Offer failed");
+                    return;
+                }
+                sessionDescription.sdp = setBandwidth(sessionDescription.sdp);
+                c.iceReady = true;
+                c.peerconnection.setLocalDescription(sessionDescription);
+                this.sendSDP(sessionDescription, event.from);
             }
         } else if (event.type === "sdp") {
             if (event.sdp!.type === "offer") {
@@ -89,7 +84,17 @@ export default class {
                     const c = createConnection(event.from, peer, this.localStream, this.socket, this.videoElementManager);
                     this.connections.addConnection(event.from, c);
                     c.peerconnection.setRemoteDescription(new RTCSessionDescription(event.sdp as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
-                    this.sendAnswer(event);
+
+                    const sessionDescription = await c.peerconnection.createAnswer(mediaConstraints);
+                    if (!sessionDescription.sdp) {
+                        console.log("Create Answer failed");
+                        return;
+                    }
+
+                    sessionDescription.sdp = setBandwidth(sessionDescription.sdp);
+                    c.iceReady = true;
+                    c.peerconnection.setLocalDescription(sessionDescription);
+                    this.sendSDP(sessionDescription, event.from);
                 }
             } else if (event.sdp!.type === "answer" && this.connections.isPeerStarted()) {
                 if (!conn) {
@@ -122,33 +127,6 @@ export default class {
             sendTo,
             type: "sdp",
         });
-    }
-
-    private sendAnswer = (evt: ISocketEvent) => {
-        const id = evt.from;
-        const conn = this.connections.getConnection(id);
-        if (!conn) {
-            console.error("peerConnection not exist!");
-            return;
-        }
-
-        conn.peerconnection.createAnswer(mediaConstraints)
-            .then((sessionDescription) => {
-                if (!sessionDescription.sdp) {
-                    console.log("Create Answer failed");
-                    return;
-                }
-
-                sessionDescription.sdp = setBandwidth(sessionDescription.sdp);
-
-                conn.iceReady = true;
-                conn.peerconnection.setLocalDescription(sessionDescription);
-                this.sendSDP(sessionDescription, id);
-            }).catch(() => {
-                console.log("Create Answer failed");
-            });
-
-        conn.iceReady = true;
     }
 
 }

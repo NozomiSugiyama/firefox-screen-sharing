@@ -1,4 +1,4 @@
-import Socket from "./socket";
+import ClientAPI from "./ClientAPI";
 
 window.addEventListener("load", () => main());
 
@@ -11,7 +11,7 @@ const main = async () => {
     ];
 
     const stream = await navigator.mediaDevices.getUserMedia({ video: { mediaSource: "window" } as any });
-    const socket = new Socket(
+    const socket = new ClientAPI(
         stream,
         videoElements,
         (id: string) => {
