@@ -1,6 +1,7 @@
 # firefox-screen-share
+firefoxのみで動くWebRTCを用いた画面共有サイト
 
-## Start
+## How to start
 
 ```bash
 yarn
