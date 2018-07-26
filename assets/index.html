@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebRTC Test!</title>
+</head>
+
+<body>
+    <button type="button" id="start-video-button">Start video</button>
+    <button type="button" id="stop-video-button">Stop video</button>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" id="connect-button">Connect</button>
+    <button type="button" id="hang-up-button">Hang Up</button>
+    <br />
+    <div style="position: relative;">
+        <video id="local-video" autoplay style="width: 240px; height: 180px; border: 1px solid black;"></video>
+        <video id="webrtc-remote-video-0" autoplay style="position: absolute; top: 250px; left: 0px; width: 320px; height: 240px; border: 1px solid black; "></video>
+        <video id="webrtc-remote-video-1" autoplay style="position: absolute; top: 250px; left: 330px; width: 320px; height: 240px; border: 1px solid black; "></video>
+        <video id="webrtc-remote-video-2" autoplay style="position: absolute; top: 0px; left: 330px; width: 320px; height: 240px; border: 1px solid black; "></video>
+    </div>
+
+    <!-- socket -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.dev.js"></script>
+
+    <script src="./main.js"></script>
+</body>
+
+</html>
