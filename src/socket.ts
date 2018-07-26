@@ -10,11 +10,9 @@ const mediaConstraints = { mandatory: { OfferToReceiveAudio: true, OfferToReceiv
 export interface ISocketEvent {
     from: string;
     sendTo: string;
-    type: "call" | "response" | "candidate" | "bye" | "offer" | "pranswer" | "answer";
-    sdp?: string;
-    candidate?: string;
-    sdpMLineIndex?: number;
-    sdpMid?: string;
+    type: "call" | "response" | "candidate" | "sdp" | "bye";
+    sdp?: RTCSessionDescriptionInit;
+    candidate?: RTCIceCandidate;
 }
 
 export default class {
@@ -84,20 +82,22 @@ export default class {
                         console.log("Create Offer failed");
                     });
             }
-        } else if (event.type === "offer") {
-            if (!conn) {
-                const peer = createRTCPeerConnection();
-                const c = createConnection(event.from, peer, this.localStream, this.socket, this.videoElementManager);
-                this.connections.addConnection(event.from, c);
-                c.peerconnection.setRemoteDescription(new RTCSessionDescription(event as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
-                this.sendAnswer(event);
+        } else if (event.type === "sdp") {
+            if (event.sdp!.type === "offer") {
+                if (!conn) {
+                    const peer = createRTCPeerConnection();
+                    const c = createConnection(event.from, peer, this.localStream, this.socket, this.videoElementManager);
+                    this.connections.addConnection(event.from, c);
+                    c.peerconnection.setRemoteDescription(new RTCSessionDescription(event.sdp as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
+                    this.sendAnswer(event);
+                }
+            } else if (event.sdp!.type === "answer" && this.connections.isPeerStarted()) {
+                if (!conn) {
+                    console.error("peerConnection not exist!");
+                    return;
+                }
+                conn.peerconnection.setRemoteDescription(new RTCSessionDescription(event.sdp as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
             }
-        } else if (event.type === "answer" && this.connections.isPeerStarted()) {
-            if (!conn) {
-                console.error("peerConnection not exist!");
-                return;
-            }
-            conn.peerconnection.setRemoteDescription(new RTCSessionDescription(event as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
         } else if (event.type === "candidate" && this.connections.isPeerStarted()) {
             if (!conn) {
                 console.error("peerConnection not exist!");
@@ -108,7 +108,7 @@ export default class {
                 console.warn("PeerConn is not ICE ready, so ignore");
                 return;
             }
-            const candidate = new RTCIceCandidate({ sdpMLineIndex: event.sdpMLineIndex, sdpMid: event.sdpMid, candidate: event.candidate });
+            const candidate = new RTCIceCandidate({ ...event.candidate! as RTCIceCandidateInit });
             conn.peerconnection.addIceCandidate(candidate);
         } else if (event.type === "bye" && this.connections.isPeerStarted()) {
             this.videoElementManager.detachVideo(event.from);
@@ -117,7 +117,11 @@ export default class {
     }
 
     private sendSDP = (sdp: RTCSessionDescriptionInit, sendTo: string) => {
-        this.socket.send({ ...sdp, id: sendTo, type: sdp.type });
+        this.socket.send({
+            sdp,
+            sendTo,
+            type: "sdp",
+        });
     }
 
     private sendAnswer = (evt: ISocketEvent) => {
@@ -161,9 +165,7 @@ const createConnection = (
     peer.onicecandidate = (evt) => {
         if (evt.candidate) {
             socket.send({
-                candidate: evt.candidate.candidate,
-                sdpMLineIndex: evt.candidate.sdpMLineIndex,
-                sdpMid: evt.candidate.sdpMid,
+                candidate: evt.candidate,
                 sendTo: id,
                 type: "candidate",
             });
