@@ -1,6 +1,6 @@
 import Connection from "./Connection";
 
-const MAX_CONNECTION_COUNT = 3;
+const MAX_CONNECTION_COUNT = 1;
 
 export default class {
     private connections: { [key: string]: Connection; } = {};

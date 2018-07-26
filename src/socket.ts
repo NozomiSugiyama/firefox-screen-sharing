@@ -21,14 +21,12 @@ export default class {
     private localStream: MediaStream;
     private videoElementManager: videoElementManager;
     private connections: ConnectionList;
-    private socket: any;
-    private socketReady: boolean;
+    private socket: SocketIOClient.Socket;
     private onCall: (id: string) => boolean;
 
     constructor(localStream: MediaStream, videoElements: HTMLVideoElement[], onCall: (id: string) => boolean) {
         this.socket = io.connect(`${window.location.origin}/`);
 
-        this.socketReady = false;
         this.connections = new ConnectionList();
         this.videoElementManager = new videoElementManager(videoElements);
         this.localStream = localStream;
@@ -38,17 +36,16 @@ export default class {
             .on("message", this.onMessage);
     }
 
-    public call = () => this.socketReady && this.socket.json.send({ type: "call" });
+    public call = () => this.socket.send({ type: "call" });
 
     public hangUp = () => {
-        this.socket.json.send({ type: "bye" });
+        this.socket.send({ type: "bye" });
         this.videoElementManager.detachAllVideo();
         this.connections.stopAllConnections();
     }
 
     private onOpened = () => {
         console.log("Socket opend");
-        this.socketReady = true;
         const roomname = getRoomName();
         this.socket.emit("enter", roomname);
         console.log(`enter to ${roomname}`);
@@ -56,22 +53,20 @@ export default class {
 
     private onMessage = (event: ISocketEvent) => {
         const conn = this.connections.getConnection(event.from);
-        console.log("============= catch message ===========");
-        console.log(event.type);
-        console.log(event);
-        console.log("=======================================");
+        console.log("catch message");
+        console.log(event.type, event);
         if (event.type === "call") {
-            if (conn) {
-                return;
-            }
-            if (this.connections.isConnectPossible()) {
-                if (this.onCall(event.from))
-                    this.socket.json.send({ type: "response", sendTo: event.from });
-            } else {
-                console.warn("max connections. so ignore call");
-            }
+            if (conn) return;
+            // tslint:disable-next-line:no-unused-expression
+            else if (this.connections.isConnectPossible()) this.onCall(event.from) && this.socket.send({ type: "response", sendTo: event.from });
+            else console.warn("max connections. so ignore call");
         } else if (event.type === "response") {
-            const c = conn || this.prepareNewConnection(event.from);
+            let c = conn;
+            if (!c) {
+                const peer = createRTCPeerConnection();
+                c = createConnection(event.from, peer, this.localStream, this.socket, this.videoElementManager);
+                this.connections.addConnection(event.from, c);
+            }
 
             if (c.peerconnection) {
                 c.peerconnection.createOffer(mediaConstraints)
@@ -90,10 +85,19 @@ export default class {
                     });
             }
         } else if (event.type === "offer") {
-            this.setOffer(event);
-            this.sendAnswer(event);
+            if (!conn) {
+                const peer = createRTCPeerConnection();
+                const c = createConnection(event.from, peer, this.localStream, this.socket, this.videoElementManager);
+                this.connections.addConnection(event.from, c);
+                c.peerconnection.setRemoteDescription(new RTCSessionDescription(event as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
+                this.sendAnswer(event);
+            }
         } else if (event.type === "answer" && this.connections.isPeerStarted()) {
-            this.setAnswer(event);
+            if (!conn) {
+                console.error("peerConnection not exist!");
+                return;
+            }
+            conn.peerconnection.setRemoteDescription(new RTCSessionDescription(event as RTCSessionDescriptionInit) as RTCSessionDescriptionInit);
         } else if (event.type === "candidate" && this.connections.isPeerStarted()) {
             if (!conn) {
                 console.error("peerConnection not exist!");
@@ -113,29 +117,7 @@ export default class {
     }
 
     private sendSDP = (sdp: RTCSessionDescriptionInit, sendTo: string) => {
-        this.socket.json.send({ ...sdp, id: sendTo, type: sdp.type });
-    }
-
-    private sendCandidate = (candidate: RTCIceCandidate, sendTo: string) => {
-
-        this.socket.json.send({
-            ...candidate,
-            sendTo,
-            type: "candidate",
-        });
-    }
-
-    private setOffer = (evt: ISocketEvent) => {
-        const id = evt.from;
-        let conn = this.connections.getConnection(id);
-        if (!conn) {
-            conn = this.prepareNewConnection(id);
-
-            const x = evt as RTCSessionDescriptionInit;
-            conn.peerconnection.setRemoteDescription(new RTCSessionDescription(x) as RTCSessionDescriptionInit);
-        } else {
-            console.error("peerConnection alreay exist!");
-        }
+        this.socket.send({ ...sdp, id: sendTo, type: sdp.type });
     }
 
     private sendAnswer = (evt: ISocketEvent) => {
@@ -165,58 +147,43 @@ export default class {
         conn.iceReady = true;
     }
 
-    private setAnswer = (evt: ISocketEvent) => {
-        const id = evt.from;
-        const conn = this.connections.getConnection(id);
-        if (!conn) {
-            console.error("peerConnection not exist!");
-            return;
-        }
-        const x = evt as RTCSessionDescriptionInit;
-        conn.peerconnection.setRemoteDescription(new RTCSessionDescription(x) as RTCSessionDescriptionInit);
-    }
-
-    private prepareNewConnection = (id: string) => {
-        let peer = null;
-        try {
-            peer = new RTCPeerConnection({ iceServers: [{urls: "stun:stun.l.google.com:19302"}] });
-        } catch (e) {
-            console.log("Failed to create PeerConnection, exception: " + e.message);
-            throw e;
-        }
-        const conn = new Connection(id, peer);
-        this.connections.addConnection(id, conn);
-        peer.onicecandidate = (evt) => {
-            if (evt.candidate) {
-                this.sendCandidate(
-                    {
-                        candidate: evt.candidate.candidate,
-                        sdpMLineIndex: evt.candidate.sdpMLineIndex,
-                        sdpMid: evt.candidate.sdpMid,
-                    } as RTCIceCandidate,
-                    conn.id,
-                );
-            } else {
-                conn.established = true;
-            }
-        };
-        peer.addStream(this.localStream);
-        peer.addEventListener(
-            "addstream",
-            (event) => {
-                this.videoElementManager.attachVideo(conn.id, event.stream!);
-            },
-            false,
-        );
-        peer.addEventListener(
-            "removestream",
-            () => {
-                this.videoElementManager.detachVideo(conn.id);
-            },
-            false,
-        );
-
-        return conn;
-    }
-
 }
+
+const createConnection = (
+    id: string,
+    peer: RTCPeerConnection,
+    localStream: MediaStream,
+    socket: SocketIOClient.Socket,
+    videoManager: videoElementManager,
+) => {
+
+    const conn = new Connection(id, peer);
+    peer.onicecandidate = (evt) => {
+        if (evt.candidate) {
+            socket.send({
+                candidate: evt.candidate.candidate,
+                sdpMLineIndex: evt.candidate.sdpMLineIndex,
+                sdpMid: evt.candidate.sdpMid,
+                sendTo: id,
+                type: "candidate",
+            });
+        } else {
+            conn.established = true;
+        }
+    };
+    peer.addStream(localStream);
+    peer.addEventListener(
+        "addstream",
+        (event) => videoManager.attachVideo(conn.id, event.stream!),
+        false,
+    );
+    peer.addEventListener(
+        "removestream",
+        () => videoManager.detachVideo(conn.id),
+        false,
+    );
+
+    return conn;
+};
+
+const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:stun.l.google.com:19302"}] });
