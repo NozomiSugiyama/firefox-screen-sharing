@@ -3,9 +3,9 @@ const fs = require("fs");
 const io = require("socket.io").listen(port);
 
 io.sockets.on("connection", socket => {
-    socket.on("enter", roomname => {
-        socket.roomname = roomname;
-        socket.join(roomname);
+    socket.on("enter", roomName => {
+        socket.roomName = roomName;
+        socket.join(roomName);
     });
 
     socket.on("message", message => {
@@ -16,16 +16,12 @@ io.sockets.on("connection", socket => {
             return;
         }
 
-        emitMessage("message", message);
+        if (socket.roomName) socket.broadcast.to(socket.roomName).emit("message", message);
+        else socket.broadcast.emit(type, message);
     });
 
     socket.on("disconnect", () => {
-        emitMessage("bye");
+        if (socket.roomName) socket.broadcast.to(socket.roomName).emit("message", { from: socket.id, type: "bye"});
+        else socket.broadcast.emit(type, { from: socket.id, type: "bye"});
     });
-
-    const emitMessage = (type, message) => {
-        const roomname = socket.roomname;
-        if (roomname) { socket.broadcast.to(roomname).emit(type, message); }
-        else { socket.broadcast.emit(type, message); }
-    }
 });

@@ -1,4 +1,4 @@
-# firefox-screen-share
+# firefox-screen-sharing
 firefoxのみで動くWebRTCを用いた画面共有サイト
 
 ## How to start

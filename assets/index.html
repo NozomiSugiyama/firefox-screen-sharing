@@ -2,24 +2,31 @@
 <html>
 
 <head>
-    <title>WebRTC Test!</title>
+    <title>firefox screen sharing</title>
     <link href="./style.css" rel="stylesheet" type="text/css">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
 </head>
 
 <body>
-    <div>
-        <button type="button" id="socket-button">Connect</button>
-    </div>
-    <div>
+    <header>
+        <h1>firefox screen sharing</h1>
+        <button id="reconnect-button">RECONNECT</button>
+    </header>
+    <main>
+        <div>
+            <div id="video-list">
+                <video id="webrtc-remote-video-0" autoplay>Not Connect</video>
+            </div>
+        </div>
         <video id="local-video" autoplay></video>
-        <video id="webrtc-remote-video-0" autoplay></video>
+    </main>
+    <div id="dialog-wrapper">
+        <div>
+            <h2>Join room</h2>
+            <button type="button" id="connect-button">CONNECT</button>
+        </div>
     </div>
-
-    <!-- socket -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.dev.js"></script>
-
     <script src="./main.js"></script>
 </body>
 

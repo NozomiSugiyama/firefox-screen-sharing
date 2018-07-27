@@ -3,7 +3,7 @@ import Connection from "./connection/Connection";
 import ConnectionList from "./connection/ConnectionList";
 import getRoomName from "./util/getRoomName";
 import setBandwidth from "./util/setBandWidth";
-import videoElementManager from "./videoElementManager";
+import VideoElementManager from "./VideoElementManager";
 
 const mediaConstraints = { mandatory: { OfferToReceiveAudio: true, OfferToReceiveVideo: true } } as RTCOfferOptions;
 
@@ -17,7 +17,7 @@ export interface ISocketEvent {
 
 export default class {
     private localStream: MediaStream;
-    private videoElementManager: videoElementManager;
+    private videoElementManager: VideoElementManager;
     private connections: ConnectionList;
     private socket: SocketIOClient.Socket;
     private onCall: (id: string) => boolean;
@@ -26,7 +26,7 @@ export default class {
         this.socket = io.connect(`${window.location.origin}/`);
 
         this.connections = new ConnectionList();
-        this.videoElementManager = new videoElementManager(videoElements);
+        this.videoElementManager = new VideoElementManager(videoElements);
         this.localStream = localStream;
         this.onCall = onCall;
 
@@ -73,11 +73,11 @@ export default class {
                     return;
                 }
                 sessionDescription.sdp = setBandwidth(sessionDescription.sdp);
-                c.iceReady = true;
                 c.peerconnection.setLocalDescription(sessionDescription);
                 this.sendSDP(sessionDescription, event.from);
             }
         } else if (event.type === "sdp") {
+
             if (event.sdp!.type === "offer") {
                 if (!conn) {
                     const peer = createRTCPeerConnection();
@@ -92,7 +92,6 @@ export default class {
                     }
 
                     sessionDescription.sdp = setBandwidth(sessionDescription.sdp);
-                    c.iceReady = true;
                     c.peerconnection.setLocalDescription(sessionDescription);
                     this.sendSDP(sessionDescription, event.from);
                 }
@@ -109,10 +108,6 @@ export default class {
                 return;
             }
 
-            if (!conn.iceReady) {
-                console.warn("PeerConn is not ICE ready, so ignore");
-                return;
-            }
             const candidate = new RTCIceCandidate({ ...event.candidate! as RTCIceCandidateInit });
             conn.peerconnection.addIceCandidate(candidate);
         } else if (event.type === "bye" && this.connections.isPeerStarted()) {
@@ -136,7 +131,7 @@ const createConnection = (
     peer: RTCPeerConnection,
     localStream: MediaStream,
     socket: SocketIOClient.Socket,
-    videoManager: videoElementManager,
+    videoManager: VideoElementManager,
 ) => {
 
     const conn = new Connection(id, peer);
