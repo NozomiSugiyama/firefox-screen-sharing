@@ -3,7 +3,19 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "build": "webpack -p"
+  },
   "dependencies": {
     "socket.io": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^10.5.3",
+    "@types/socket.io": "^1.4.36",
+    "ts-loader": "^4.4.2",
+    "typescript": "^2.9.2",
+    "webpack": "^4.16.2",
+    "webpack-cli": "^3.1.0",
+    "webpack-node-externals": "^1.7.2"
   }
 }
