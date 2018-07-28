@@ -1,6 +1,5 @@
 export default class {
     public id: string;
-    public established: boolean;
     public iceReady: boolean;
     public peerconnection: RTCPeerConnection;
     constructor(
@@ -9,7 +8,6 @@ export default class {
     ) {
         this.id = id;
         this.peerconnection = peerconnection;
-        this.established = false;
         this.iceReady = false;
     }
 }

@@ -142,8 +142,6 @@ const createConnection = (
                 sendTo: id,
                 type: "candidate",
             });
-        } else {
-            conn.established = true;
         }
     };
     peer.addStream(localStream);
@@ -161,4 +159,5 @@ const createConnection = (
     return conn;
 };
 
-const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:stun.l.google.com:19302"}] });
+// const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:stun.l.google.com:19302"}] });
+const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:153.127.195.162:3478"}] });

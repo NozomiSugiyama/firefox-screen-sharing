@@ -1,3 +1,3 @@
 #!/bin/bash
-nodejs /server/index.js &
+nodejs /server/dist/index.js &
 nginx -g "daemon off;"
