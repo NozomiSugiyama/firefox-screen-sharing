@@ -10,7 +10,7 @@ export default class {
     public attachVideo = (id: string, stream: MediaStream) => {
         const videoElement = this.popVideoStandBy();
         if (videoElement) {
-            videoElement.src = window.URL.createObjectURL(stream);
+            videoElement.srcObject = stream;
             this.videoElementsInUse[id] = videoElement;
             videoElement.style.display = "block";
         } else {

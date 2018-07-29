@@ -22,8 +22,8 @@ export default class {
     private socket: SocketIOClient.Socket;
     private onCall: (id: string) => boolean;
 
-    constructor(localStream: MediaStream, videoElements: HTMLVideoElement[], onCall: (id: string) => boolean) {
-        this.socket = io.connect(`${window.location.origin}/`);
+    constructor(url: string, localStream: MediaStream, videoElements: HTMLVideoElement[], onCall: (id: string) => boolean) {
+        this.socket = io.connect(url);
 
         this.connections = new ConnectionList();
         this.videoElementManager = new VideoElementManager(videoElements);
@@ -136,6 +136,7 @@ const createConnection = (
 
     const conn = new Connection(id, peer);
     peer.onicecandidate = (evt) => {
+        console.log(evt);
         if (evt.candidate) {
             socket.send({
                 candidate: evt.candidate,
@@ -159,5 +160,4 @@ const createConnection = (
     return conn;
 };
 
-// const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:stun.l.google.com:19302"}] });
-const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:153.127.195.162:3478"}] });
+const createRTCPeerConnection = () => new RTCPeerConnection({ iceServers: [{urls: "stun:stun.l.google.com:19302"}] });

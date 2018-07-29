@@ -15,6 +15,8 @@ const main = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { mediaSource: "screen" } as any });
         const socket = new ClientAPI(
+            // window.location.origin,
+            "https://153.127.203.166/",
             stream,
             videoElements,
             (id: string) => {
@@ -23,7 +25,7 @@ const main = async () => {
                 return result;
             },
         );
-        localVideo.src = URL.createObjectURL(stream);
+        localVideo.srcObject = stream;
         localVideo.play();
         localVideo.volume = 0;
 
